@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1116">
+  <title>D435i Prototype Lab</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <svg class="icon-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 6h4l2-2h4l2 2h4v14H4z"/><circle cx="12" cy="12.5" r="3.5"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+    <symbol id="i-pose" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2"/><path d="m5 8 7 3 7-3m-7 3v6m0-2-5 6m5-6 5 6"/></symbol>
+    <symbol id="i-depth" viewBox="0 0 24 24"><path d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></symbol>
+  </svg>
+
+  <header class="app-header">
+    <a class="brand" href="/" aria-label="D435i Prototype Lab 홈">
+      <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span><span class="eyebrow">ROBOT LEARNING · SENSOR WORKBENCH</span><span class="brand-title">D435i <strong>Prototype Lab</strong></span></span>
+    </a>
+    <div class="header-end">
+      <a href="/compare" class="compare-link">저장 프레임 비교 →</a>
+      <span class="platform-pill">JETSON ORIN NX</span>
+      <div id="connection-status" class="connection-status" data-state="connecting" role="status"><span class="status-dot"></span><span id="connection-label">장치 확인 중</span></div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="sidebar" aria-label="카메라 및 추론 설정">
+      <section class="control-section device-section">
+        <div class="section-heading"><h2>연결된 센서</h2><span class="section-index">01</span></div>
+        <div class="sensor-drawing" aria-hidden="true"><span class="sensor-body"><i></i><i></i><i></i></span></div>
+        <div class="device-name" id="device-name">Intel RealSense D435i</div>
+        <div class="device-caption">RGB + Depth + IMU · USB camera</div>
+        <dl class="device-details">
+          <div><dt>시리얼</dt><dd id="device-serial">—</dd></div>
+          <div><dt>USB 연결</dt><dd id="device-usb">—</dd></div>
+          <div><dt>해상도</dt><dd id="device-resolution">—</dd></div>
+        </dl>
+        <button id="camera-button" class="button button-primary" type="button"><svg class="icon"><use href="#i-play"/></svg><span>카메라 시작</span></button>
+        <p id="camera-help" class="field-help">장치를 확인한 후 실시간 스트림을 시작합니다.</p>
+      </section>
+
+      <button id="mobile-settings-toggle" class="mobile-settings-toggle" type="button" aria-expanded="false" aria-controls="settings-pose settings-depth settings-capture">모델 · Pose · Depth 설정 펼치기 <span aria-hidden="true">+</span></button>
+
+      <section id="settings-pose" class="control-section">
+        <div class="section-heading"><h2>Pose 추론</h2><span class="section-index">02</span></div>
+        <label class="model-select-label" for="pose-model-select">실시간 모델</label>
+        <select id="pose-model-select" class="model-select" aria-describedby="pose-model-help" disabled>
+          <option value="yolo">YOLOv8n-pose · 몸 17점</option>
+          <option value="mediapipe">MediaPipe Hand · 손 21점</option>
+          <option value="rtmpose">RTMPose-m · 몸 17점</option>
+          <option value="egoforce">EgoForce HALO · 손 + 전완</option>
+        </select>
+        <p id="pose-model-help" class="field-help model-help">모델을 변경하면 Pose 영상에 실시간으로 적용합니다.</p>
+        <label class="toggle-row" for="pose-toggle"><span class="toggle-label"><svg class="icon"><use href="#i-pose"/></svg>스켈레톤 표시</span><span class="switch"><input type="checkbox" id="pose-toggle" checked><span class="switch-track"></span></span></label>
+        <div class="model-line"><span id="pose-model">모델 확인 중</span><span id="pose-state" class="mini-status">대기</span></div>
+        <label class="range-label" for="confidence"><span id="confidence-label">사람 검출 기준</span><output id="confidence-value" for="confidence">0.35</output></label>
+        <input id="confidence" type="range" min="0.1" max="0.9" step="0.05" value="0.35">
+        <div class="range-ends" id="confidence-ends"><span>더 많은 검출</span><span>높은 기준</span></div>
+        <p id="confidence-help" class="field-help confidence-help">사람 영역을 검출할 때 적용하는 기준입니다.</p>
+        <details id="pose-roi-controls" class="pose-roi-controls" hidden>
+          <summary>손 · 팔 영역 <span id="pose-roi-summary">전체 영상</span></summary>
+          <p id="pose-roi-help" class="field-help">실제로 보이는 팔 영역을 원본 영상의 픽셀 좌표로 지정합니다.</p>
+          <div class="pose-roi-inputs"><label>X1<input id="pose-roi-x1" type="number" min="0" step="1" placeholder="—"></label><label>Y1<input id="pose-roi-y1" type="number" min="0" step="1" placeholder="—"></label><label>X2<input id="pose-roi-x2" type="number" min="0" step="1" placeholder="—"></label><label>Y2<input id="pose-roi-y2" type="number" min="0" step="1" placeholder="—"></label></div>
+          <div class="pose-roi-actions"><button id="pose-roi-apply" type="button" class="button button-secondary">영역 적용</button><button id="pose-roi-clear" type="button" class="roi-clear-button">전체 영상</button></div>
+          <p id="pose-roi-note" class="field-help">선택하지 않으면 전체 영상을 사용합니다.</p>
+        </details>
+      </section>
+
+      <section id="settings-depth" class="control-section">
+        <div class="section-heading"><h2>Depth 표시 범위</h2><span class="section-index">03</span></div>
+        <div class="depth-inputs">
+          <label for="depth-min"><span>최소 거리</span><span class="number-input"><input id="depth-min" type="number" min="0.1" max="10" step="0.1" value="0.3"><span>m</span></span></label>
+          <span class="depth-divider" aria-hidden="true">→</span>
+          <label for="depth-max"><span>최대 거리</span><span class="number-input"><input id="depth-max" type="number" min="0.2" max="10" step="0.1" value="4.0"><span>m</span></span></label>
+        </div>
+        <div class="depth-scale" aria-hidden="true"></div>
+        <div class="range-ends"><span>가까움</span><span>멀리</span></div>
+        <p class="field-help">RGB 좌표에 정렬된 깊이 영상입니다.<br>가림·반사·거리로 깊이가 없을 수 있습니다.</p>
+      </section>
+
+      <section id="settings-capture" class="control-section capture-section">
+        <button id="snapshot-button" class="button button-secondary" type="button" disabled><svg class="icon"><use href="#i-save"/></svg>현재 프레임 저장</button>
+        <p class="field-help">최근 완료한 Pose와 같은 시점의 RGB·깊이·관절 데이터를 저장합니다.</p>
+        <div id="snapshot-result" class="snapshot-result" hidden></div>
+      </section>
+      <div class="sidebar-foot"><span class="tiny-square"></span>로컬 프로토타입 워크스페이스</div>
+    </aside>
+
+    <main class="workspace">
+      <div class="workspace-heading"><div><div class="eyebrow">LIVE SENSOR VIEW</div><h1>실시간 센서 모니터</h1><p>컬러, 깊이, 선택한 모델의 Pose 영상을 한 화면에서 확인하세요.</p></div><span id="live-badge" class="live-badge" data-live="false"><span></span>STANDBY</span></div>
+
+      <section id="recording-panel" class="recording-panel" data-state="idle" aria-labelledby="recording-title">
+        <div class="recording-main">
+          <div class="recording-identity"><span id="recording-badge" class="recording-badge"><i></i><span id="recording-badge-label">VIDEO + CSV</span></span><div><h2 id="recording-title">영상 · 데이터 녹화</h2><p id="recording-status" role="status" aria-live="polite">녹화 기능 확인 중</p></div></div>
+          <div class="recording-clock" aria-hidden="true"><strong id="recording-timer">00:00</strong><span id="recording-timer-unit">경과 시간</span></div>
+          <button id="recording-button" class="button recording-button" type="button" disabled><span class="recording-button-mark" aria-hidden="true"></span><span id="recording-button-label">녹화 시작</span></button>
+        </div>
+        <p id="recording-help" class="recording-help">시작을 누르면 5초 뒤에 촬영을 시작합니다.</p>
+        <div id="recording-progress" class="recording-progress" hidden><span id="recording-frames"></span><span id="recording-dataset"></span><span id="recording-dropped"></span></div>
+        <p id="recording-error" class="recording-error" role="alert" hidden></p>
+        <div id="recording-result" class="recording-result" hidden><div class="recording-result-heading"><strong id="recording-result-title">녹화 저장 완료</strong><span id="recording-result-id"></span></div><div id="recording-file-links" class="recording-file-links"></div></div>
+      </section>
+
+      <div id="notice" class="notice" role="status" hidden><svg class="icon"><use href="#i-info"/></svg><span id="notice-text"></span></div>
+
+      <section class="telemetry" aria-label="실시간 처리 상태">
+        <div class="metric"><span class="metric-label">카메라 프레임</span><span class="metric-value"><strong id="camera-fps">—</strong><span>fps</span></span><span class="metric-note">입력 스트림</span></div>
+        <div class="metric"><span class="metric-label">Pose 처리 속도</span><span class="metric-value"><strong id="pose-fps">—</strong><span>fps</span></span><span class="metric-note" id="pose-backend">모델 준비 대기</span></div>
+        <div class="metric"><span class="metric-label">추론 시간</span><span class="metric-value"><strong id="inference-ms">—</strong><span>ms</span></span><span class="metric-note">프레임당 모델 실행</span></div>
+        <div class="metric"><span class="metric-label" id="pose-count-label">감지된 사람</span><span class="metric-value"><strong id="people-count">—</strong><span id="pose-count-unit">명</span></span><span class="metric-note" id="pose-count-note">현재 모델의 추정 결과</span></div>
+      </section>
+
+      <section id="sensor-data-panel" class="sensor-data-panel" aria-labelledby="sensor-data-title">
+        <div class="sensor-data-heading"><div><h2 id="sensor-data-title">센서 · Pose 데이터 수신</h2><p>영상과 IMU의 수신 속도·최근 시각을 확인하고, 녹화 후 하나의 CSV로 내려받습니다.</p></div><span class="sensor-data-caption">실제 수신값</span></div>
+        <div class="sensor-streams" aria-label="데이터 스트림 상태">
+          <div id="sensor-rgb" class="sensor-stream" data-state="waiting"><div><strong>RGB</strong><span id="sensor-rgb-state" class="sensor-state">확인 중</span></div><p><span id="sensor-rgb-hz">— Hz</span><span id="sensor-rgb-age">—</span></p><small id="sensor-rgb-detail">컬러 원본 프레임</small></div>
+          <div id="sensor-depth" class="sensor-stream" data-state="waiting"><div><strong>Depth</strong><span id="sensor-depth-state" class="sensor-state">확인 중</span></div><p><span id="sensor-depth-hz">— Hz</span><span id="sensor-depth-age">—</span></p><small id="sensor-depth-detail">RGB에 정렬된 Z16</small></div>
+          <div id="sensor-pose" class="sensor-stream" data-state="waiting"><div><strong>Pose</strong><span id="sensor-pose-state" class="sensor-state">확인 중</span></div><p><span id="sensor-pose-hz">— Hz</span><span id="sensor-pose-age">—</span></p><small id="sensor-pose-detail">실제 추론 결과</small></div>
+          <div id="sensor-accel" class="sensor-stream" data-state="waiting"><div><strong>가속도</strong><span id="sensor-accel-state" class="sensor-state">확인 중</span></div><p><span id="sensor-accel-hz">— Hz</span><span id="sensor-accel-age">—</span></p><small id="sensor-accel-detail">IMU · m/s²</small></div>
+          <div id="sensor-gyro" class="sensor-stream" data-state="waiting"><div><strong>각속도</strong><span id="sensor-gyro-state" class="sensor-state">확인 중</span></div><p><span id="sensor-gyro-hz">— Hz</span><span id="sensor-gyro-age">—</span></p><small id="sensor-gyro-detail">IMU · rad/s</small></div>
+        </div>
+        <p id="imu-reason" class="imu-reason" role="status">IMU 상태를 확인하고 있습니다.</p>
+        <div class="imu-charts">
+          <article class="imu-chart" aria-labelledby="imu-accel-title"><div class="imu-chart-heading"><h3 id="imu-accel-title">가속도 <span>m/s²</span></h3><span id="imu-accel-range">수신 대기</span></div><div class="imu-values" aria-label="현재 가속도"><span class="axis-x">X <strong id="imu-accel-x">—</strong></span><span class="axis-y">Y <strong id="imu-accel-y">—</strong></span><span class="axis-z">Z <strong id="imu-accel-z">—</strong></span></div><div class="imu-plot"><svg id="imu-accel-chart" viewBox="0 0 600 100" preserveAspectRatio="none" role="img" aria-label="최근 10초의 실제 가속도 X, Y, Z 수신값 그래프"><path class="imu-gridline" d="M0 25H600M0 50H600M0 75H600"/><path id="imu-accel-x-path" class="imu-line axis-x"/><path id="imu-accel-y-path" class="imu-line axis-y"/><path id="imu-accel-z-path" class="imu-line axis-z"/></svg><span id="imu-accel-empty" class="imu-chart-empty">가속도 데이터 수신 대기</span></div></article>
+          <article class="imu-chart" aria-labelledby="imu-gyro-title"><div class="imu-chart-heading"><h3 id="imu-gyro-title">각속도 <span>rad/s</span></h3><span id="imu-gyro-range">수신 대기</span></div><div class="imu-values" aria-label="현재 각속도"><span class="axis-x">X <strong id="imu-gyro-x">—</strong></span><span class="axis-y">Y <strong id="imu-gyro-y">—</strong></span><span class="axis-z">Z <strong id="imu-gyro-z">—</strong></span></div><div class="imu-plot"><svg id="imu-gyro-chart" viewBox="0 0 600 100" preserveAspectRatio="none" role="img" aria-label="최근 10초의 실제 각속도 X, Y, Z 수신값 그래프"><path class="imu-gridline" d="M0 25H600M0 50H600M0 75H600"/><path id="imu-gyro-x-path" class="imu-line axis-x"/><path id="imu-gyro-y-path" class="imu-line axis-y"/><path id="imu-gyro-z-path" class="imu-line axis-z"/></svg><span id="imu-gyro-empty" class="imu-chart-empty">각속도 데이터 수신 대기</span></div></article>
+        </div>
+        <div class="sensor-data-foot"><span id="imu-history-note">최근 10초 · 수신 시각 기준 · X / Y / Z</span><span id="dataset-help">녹화 시작 → 5초 준비 → 영상 + 데이터셋 CSV 저장</span></div>
+      </section>
+
+      <div class="view-toolbar"><div class="view-tabs" role="group" aria-label="화면 선택"><button type="button" class="view-tab is-active" data-view="all" aria-pressed="true"><svg class="icon"><use href="#i-grid"/></svg>4분할</button><button type="button" class="view-tab" data-view="rgb" aria-pressed="false">RGB</button><button type="button" class="view-tab" data-view="depth" aria-pressed="false">Depth</button><button type="button" class="view-tab" data-view="rgbd" aria-pressed="false">RGB-D</button><button type="button" class="view-tab" data-view="pose" aria-pressed="false">Pose</button></div><span class="preview-note">브라우저 미리보기</span></div>
+
+      <section id="view-grid" class="view-grid" data-layout="all" aria-label="카메라 영상">
+        <article class="view-card" data-stream="rgb" data-feed="idle"><header class="card-header"><div><span class="channel-number">01</span><h2>RGB <span>컬러 영상</span></h2></div><button class="expand-button" data-expand="rgb" type="button" aria-label="RGB 영상 확대"><svg class="icon"><use href="#i-expand"/></svg></button></header><div class="video-area"><img id="stream-rgb" alt="RealSense 카메라의 실시간 RGB 컬러 영상"><div class="video-placeholder"><svg class="placeholder-icon"><use href="#i-camera"/></svg><strong class="placeholder-title">카메라 연결 대기</strong><span class="placeholder-description">스트림을 시작하면 영상이 표시됩니다.</span></div><span class="feed-indicator"><i></i>RGB</span></div><footer class="card-footer"><span>COLOR STREAM</span><span>실시간 컬러 프레임</span></footer></article>
+        <article class="view-card" data-stream="depth" data-feed="idle"><header class="card-header"><div><span class="channel-number">02</span><h2>Depth <span>정렬된 깊이 영상</span></h2></div><button class="expand-button" data-expand="depth" type="button" aria-label="Depth 영상 확대"><svg class="icon"><use href="#i-expand"/></svg></button></header><div class="video-area"><img id="stream-depth" alt="RGB 좌표에 정렬된 RealSense 깊이 영상"><div class="video-placeholder"><svg class="placeholder-icon"><use href="#i-depth"/></svg><strong class="placeholder-title">깊이 프레임 대기</strong><span class="placeholder-description">RGB 좌표와 정렬된 거리 정보를 확인합니다.</span></div><span class="feed-indicator"><i></i>DEPTH</span></div><footer class="card-footer"><span>ALIGNED DEPTH</span><span id="depth-range-label">0.3–4.0 m</span></footer></article>
+        <article class="view-card" data-stream="rgbd" data-feed="idle"><header class="card-header"><div><span class="channel-number">03</span><h2>RGB-D <span>컬러 · 깊이 합성</span></h2></div><button class="expand-button" data-expand="rgbd" type="button" aria-label="RGB-D 영상 확대"><svg class="icon"><use href="#i-expand"/></svg></button></header><div class="video-area"><img id="stream-rgbd" alt="RGB 컬러와 깊이 컬러맵을 합성한 실시간 영상"><div class="video-placeholder"><svg class="placeholder-icon"><use href="#i-depth"/></svg><strong class="placeholder-title">합성 프레임 대기</strong><span class="placeholder-description">컬러 영상 위에 깊이 정보를 겹쳐 표시합니다.</span></div><span class="feed-indicator"><i></i>RGB + D</span></div><footer class="card-footer"><span>DEPTH OVERLAY</span><span>컬러 + 깊이 컬러맵</span></footer></article>
+        <article class="view-card pose-card" data-stream="pose" data-feed="idle"><header class="card-header"><div><span class="channel-number">04</span><h2>Pose <span id="pose-view-description">몸 17점</span></h2></div><div class="pose-actions"><div class="pose-base-toggle" role="group" aria-label="Pose 배경 영상"><button type="button" data-pose-base="rgb" aria-pressed="true">RGB</button><button type="button" data-pose-base="rgbd" aria-pressed="false">RGB-D</button></div><button class="expand-button" data-expand="pose" type="button" aria-label="Pose 영상 확대"><svg class="icon"><use href="#i-expand"/></svg></button></div></header><div class="video-area"><img id="stream-pose" alt="선택한 실시간 모델이 관절과 스켈레톤을 표시한 Pose 영상"><div class="video-placeholder"><svg class="placeholder-icon"><use href="#i-pose"/></svg><strong class="placeholder-title">Pose 프레임 대기</strong><span class="placeholder-description">선택한 모델의 실제 추론 결과를 표시합니다.</span></div><span class="feed-indicator"><i></i><span id="pose-feed-label">YOLO POSE</span></span></div><footer class="card-footer"><span id="pose-frame-note">선택 모델의 Pose 원본 프레임</span><span id="pose-card-note">스켈레톤 + 관절 깊이</span></footer></article>
+      </section>
+      <footer class="workspace-footer"><span><span class="tiny-square"></span>RealSense D435i · RGB-D + Pose prototype</span><span id="last-update">서버 연결 중</span></footer>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

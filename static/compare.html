@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1116">
+  <title>Pose 모델 비교 · D435i Prototype Lab</title>
+  <link rel="stylesheet" href="/compare.css">
+  <script src="/compare.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="/" aria-label="실시간 센서 모니터로 이동"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span><span class="eyebrow">ROBOT LEARNING · SENSOR WORKBENCH</span><span class="brand-title">D435i <strong>Prototype Lab</strong></span></span></a>
+    <div class="header-links"><a href="/">← 실시간 모니터</a><span class="platform-pill">JETSON ORIN NX</span></div>
+  </header>
+  <main class="workspace">
+    <div class="heading"><div><div class="eyebrow">SAME FRAME · THREE MODELS</div><h1>손 · 팔 Pose 모델 비교</h1><p>한 장의 RGB 영상에 세 후보를 적용하고 관절 위치와 처리 시간을 비교합니다.</p></div><div id="server-state" class="status-pill" data-state="loading"><i></i><span>연결 중</span></div></div>
+    <div id="notice" class="notice" role="alert" hidden></div>
+    <section class="input-panel" aria-labelledby="input-title">
+      <div class="source-area">
+        <div class="section-bar"><h2 id="input-title"><span class="section-number">01</span> 비교할 영상</h2><span id="preview-tag" class="tag">LIVE PREVIEW</span></div>
+        <div class="preview-frame" id="preview-frame"><img id="source-preview" alt="비교 입력 영상" hidden><canvas id="roi-canvas" aria-label="마우스로 팔 영역을 선택하세요"></canvas><div id="preview-empty" class="preview-empty"><span class="empty-mark" aria-hidden="true">＋</span><strong>입력 영상을 기다립니다</strong><span>실시간 카메라 또는 저장한 프레임을 선택하세요.</span></div></div>
+        <div class="preview-footer"><span id="source-caption">현재 카메라 프레임을 가져옵니다.</span><span id="roi-caption">전체 영상</span></div>
+      </div>
+      <div class="input-controls">
+        <div class="control-label"><label class="field-label" for="source-select">입력 선택</label><button type="button" class="text-button" id="refresh-source">새 프레임 보기</button></div><select id="source-select"><option value="live">현재 카메라 프레임</option></select>
+        <div class="control-label"><span class="field-label">팔 영역 <span class="optional">선택 사항</span></span><button class="text-button" id="clear-roi" type="button" disabled>초기화</button></div>
+        <p class="help">영상에서 <strong>손목부터 팔꿈치 방향까지</strong> 드래그하세요. RTMPose와 EgoForce의 입력 영역에 사용합니다. MediaPipe는 전체 영상에서 손을 찾습니다.</p>
+        <div class="roi-values" aria-label="팔 영역의 원본 이미지 좌표"><label>X1<input type="number" id="roi-x1" min="0" step="1" placeholder="—"></label><label>Y1<input type="number" id="roi-y1" min="0" step="1" placeholder="—"></label><label>X2<input type="number" id="roi-x2" min="0" step="1" placeholder="—"></label><label>Y2<input type="number" id="roi-y2" min="0" step="1" placeholder="—"></label></div>
+        <div class="threshold-label"><label class="field-label" for="draw-threshold">RTMPose 관절 표시 기준</label><output id="threshold-value" for="draw-threshold">0.30</output></div><input type="range" id="draw-threshold" min="0.1" max="0.9" step="0.05" value="0.3"><p class="help small">MediaPipe와 EgoForce는 관절별 확률을 제공하지 않아 이 기준을 적용하지 않습니다. 모델 간 점수는 직접 비교하지 않습니다.</p>
+        <div class="run-actions"><button class="button primary" id="run-button" type="button"><span aria-hidden="true">▶</span> 세 모델 비교 실행</button><button class="button secondary" id="cancel-button" type="button" disabled>중지</button></div>
+        <label class="repeat-label" for="auto-repeat"><input type="checkbox" id="auto-repeat"><span>실시간 프레임 자동 반복<span class="help">전체 비교가 끝난 뒤 2초 후 다시 실행</span></span></label><p class="help compute-note">세 모델을 같은 프레임에 차례로 적용합니다. EgoForce는 CPU 실행 시 시간이 더 걸릴 수 있습니다.</p>
+      </div>
+    </section>
+    <div class="results-heading"><div><h2><span class="section-number">02</span> 모델별 결과</h2><p id="job-caption">비교 실행 후 같은 원본 위의 관절을 확인할 수 있습니다.</p></div><div class="result-actions"><span id="job-state" class="status-pill" data-state="idle">대기</span><a id="json-download" class="button compact secondary" href="#" download hidden>결과 JSON ↓</a></div></div>
+    <div class="comparison-note"><span aria-hidden="true">ⓘ</span><p>검출 개수와 처리 시간은 <strong>정확도 점수</strong>가 아닙니다. 손 전용·몸 관절·손과 전완 모델은 출력 범위가 다릅니다. 화면 밖 관절이나 가려진 부위는 영상으로 직접 관측한 위치가 아닙니다.</p></div>
+    <section class="model-grid" id="model-grid" aria-label="후보 세 모델 비교 결과"></section>
+    <section class="history-panel" aria-labelledby="history-title"><div class="section-bar"><h2 id="history-title"><span class="section-number">03</span> 최근 비교</h2><button type="button" id="latest-button" class="text-button" hidden>최신 비교로 돌아가기</button></div><div id="history-list" class="history-list"><p class="help">완료한 비교가 여기에 표시됩니다.</p></div></section>
+    <footer><span><i></i>RealSense D435i · 모델 비교 워크스페이스</span><span id="updated-at">서버 연결 대기</span></footer>
+  </main>
+  <dialog id="image-dialog"><div class="dialog-header"><strong id="dialog-title">모델 결과 확대</strong><button type="button" id="dialog-close" aria-label="확대 화면 닫기">닫기 ✕</button></div><img id="dialog-image" alt="확대한 모델 결과"><div class="dialog-footer"><span id="dialog-caption"></span><a id="dialog-download" href="#" download>이미지 저장 ↓</a></div></dialog>
+</body>
+</html>
